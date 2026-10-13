@@ -1,6 +1,7 @@
 """Utility functions and common helpers for CSV persistence and storage."""
 
 import csv
+import io
 import os
 import tempfile
 from pathlib import Path
@@ -154,3 +155,12 @@ def append_expense_csv(
         raise CSVStorageError(
             f"Failed to append record to CSV at '{file_path}': {exc}"
         ) from exc
+
+
+def expenses_to_csv(rows: List[Dict[str, Any]]) -> str:
+    """Serialize expense rows to CSV content for downloads."""
+    output = io.StringIO(newline="")
+    writer = csv.DictWriter(output, fieldnames=CSV_HEADERS, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    return output.getvalue()

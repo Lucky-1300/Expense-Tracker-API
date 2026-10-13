@@ -1,10 +1,11 @@
 """Services for handling expense data persistence and CRUD operations."""
 
+from datetime import date
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from app.config import EXPENSES_CSV_PATH
-from app.models import Expense, ExpenseCreate, ExpenseUpdate
+from app.models import Expense, ExpenseCreate, ExpenseUpdate, SortField, SortOrder
 from app.utils import (
     MalformedCSVError,
     append_expense_csv,
@@ -65,6 +66,34 @@ def get_all_expenses(file_path: Path = EXPENSES_CSV_PATH) -> List[Expense]:
     """
     raw_rows = read_expenses_csv(file_path)
     return [row_to_expense(row) for row in raw_rows]
+
+
+def get_expenses(
+    category: Optional[str] = None,
+    expense_date: Optional[date] = None,
+    limit: Optional[int] = None,
+    offset: int = 0,
+    sort_by: SortField = SortField.id,
+    order: SortOrder = SortOrder.asc,
+    file_path: Path = EXPENSES_CSV_PATH,
+) -> List[Expense]:
+    """Retrieve expenses after applying filters, sorting, and pagination."""
+    expenses = get_all_expenses(file_path)
+
+    if category is not None:
+        expenses = [expense for expense in expenses if expense.category == category]
+    if expense_date is not None:
+        expenses = [expense for expense in expenses if expense.date == expense_date]
+
+    expenses.sort(
+        key=lambda expense: getattr(expense, sort_by.value),
+        reverse=order == SortOrder.desc,
+    )
+
+    paginated_expenses = expenses[offset:]
+    if limit is not None:
+        paginated_expenses = paginated_expenses[:limit]
+    return paginated_expenses
 
 
 def get_expense_by_id(
